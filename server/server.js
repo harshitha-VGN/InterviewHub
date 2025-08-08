@@ -1,3 +1,6 @@
+const multer = require('multer');
+const pdf = require('pdf-parse');
+const { OpenAI } = require('openai');
 const express = require('express');
 const dotenv = require('dotenv').config();
 const cors = require('cors');
@@ -17,6 +20,60 @@ app.use(cors({
   origin: 'http://localhost:3000', // or the frontend port you're using
   credentials: true
 }));
+
+// Configure Multer for in-memory file storage
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
+
+// Initialize OpenAI client (you likely have this already)
+const openai = new OpenAI(); 
+
+// --- THE ANALYSIS FUNCTION (can be in a separate file or here) ---
+async function analyzeResume(text) {
+  // ... (The exact same analyzeResume function from the previous answer)
+  // It takes text and returns the AI's JSON string analysis.
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: "You are an expert career coach... (etc)"
+        },
+        {
+          role: "user",
+          content: `Please analyze the following resume... (etc) \n\n Resume Text: --- \n${text}\n ---`
+        }
+      ],
+      response_format: { type: "json_object" }
+    });
+    return response.choices[0].message.content;
+  } catch (error) {
+    console.error("Error calling OpenAI:", error);
+    throw new Error("Failed to get response from OpenAI.");
+  }
+}
+
+// --- ADD THIS NEW ENDPOINT TO YOUR EXISTING ROUTES ---
+// This is the core part you're adding.
+app.post('/api/analyze-resume', upload.single('resume'), async (req, res) => {
+  console.log("Received a request to /api/analyze-resume");
+  if (!req.file) {
+    return res.status(400).json({ error: "No file uploaded. Please upload a PDF." });
+  }
+  try {
+    const data = await pdf(req.file.buffer);
+    if (!data.text) {
+        return res.status(400).json({ error: "Could not extract text from the PDF." });
+    }
+    const analysisResultJson = await analyzeResume(data.text);
+    const analysisResultObject = JSON.parse(analysisResultJson);
+    res.json(analysisResultObject);
+  } catch (error) {
+    console.error("An error occurred during processing:", error);
+    res.status(500).json({ error: "An internal server error occurred." });
+  }
+});
 
 app.use(express.json()); // To parse JSON bodies
 app.use(express.urlencoded({ extended: false })); // To parse URL-encoded bodies

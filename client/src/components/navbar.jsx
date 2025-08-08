@@ -32,6 +32,16 @@ const Navbar=()=>{
                     Explore
             </button>
             <button
+                id="ResumeUploader-button"
+                aria-label='Resume Uploader'
+                data-role='nav-resume-uploader'
+                onClick={() => navigate('/resume-uploader')}
+                className="text-lg font-semibold"
+                >
+                    Resume Uploader
+            </button>
+
+            <button
             id="profile-button"
             aria-label='Profile'
             data-role='nav-profile'

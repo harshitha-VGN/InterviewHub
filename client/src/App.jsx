@@ -11,6 +11,7 @@ import './App.css'
 import AuthForm from './pages/authentication.jsx' // Assuming this is the correct path
 import Home from './pages/Home.jsx' // Assuming this is the correct path
 import MyContributions from './pages/MyContributions';
+import ResumeUploader from './pages/ResumeUploader';
 function App() {
 
   return (
@@ -26,6 +27,7 @@ function App() {
       <Route path="/explore" element={<MyExperiences />} />
       <Route path="/submitexperience" element={<SubmitExperience />} />
        <Route path="/myexperience" element={<MyContributions />} />
+      <Route path="/resume-uploader" element={<ResumeUploader />} />
     </Routes>
     </Router>
     
