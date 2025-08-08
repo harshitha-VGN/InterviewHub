@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const experienceSchema = mongoose.Schema(
     {
-        user: {
+        username: {
             type: String,
             required: true,
         },

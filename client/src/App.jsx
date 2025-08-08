@@ -8,18 +8,24 @@ import EditProfileModel from './components/editprofile.jsx'
 import MyExperiences from './pages/explore.jsx'
 import SubmitExperience from './pages/submitexperience.jsx'
 import './App.css'
-
+import AuthForm from './pages/authentication.jsx' // Assuming this is the correct path
+import Home from './pages/Home.jsx' // Assuming this is the correct path
+import MyContributions from './pages/MyContributions';
 function App() {
 
   return (
     <Router>
     <Navbar/>
     <Routes>
+       <Route path="/" element={<AuthForm />} />
+        <Route path="/register" element={<AuthForm />} />
+        <Route path="/home" element={<Home />} />
       <Route path="/profile" element={<Profile />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/editprofile" element={<EditProfileModel />} />
       <Route path="/explore" element={<MyExperiences />} />
       <Route path="/submitexperience" element={<SubmitExperience />} />
+       <Route path="/myexperience" element={<MyContributions />} />
     </Routes>
     </Router>
     
