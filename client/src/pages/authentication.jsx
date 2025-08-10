@@ -59,7 +59,7 @@ function AuthForm() {
                 const { token, username } = response.data;
                 localStorage.setItem('token', token);
                 localStorage.setItem('username', username);
-                navigate('/profile'); // Navigate to profile page on login
+                navigate('/home'); // Navigate to profile page on login
             } else {
                 handleNotification("Signup successful! Please log in to continue.", 'success');
                 switchForm(true); // Switch to login view
@@ -165,13 +165,3 @@ const InputField = ({ name, type, value, onChange, error, placeholder }) => (
 
 
 export default AuthForm;
-
-
-
-
-
-
-
-
-
-
