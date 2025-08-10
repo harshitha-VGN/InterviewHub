@@ -1,6 +1,6 @@
 const multer = require('multer');
 const pdf = require('pdf-parse');
-const { OpenAI } = require('openai');
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 const express = require('express');
 const dotenv = require('dotenv').config();
 const cors = require('cors');
@@ -8,6 +8,7 @@ const connectDB = require('./config/db');
 const PORT = process.env.PORT || 5050;
 const jwt=require('jsonwebtoken');
 const User=require('./databases/User');
+const resumeRoutes = require('./routes/resumeRoutes');
 // Connect to database
 connectDB();
 
@@ -25,58 +26,85 @@ app.use(cors({
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-// Initialize OpenAI client (you likely have this already)
-const openai = new OpenAI(); 
+//Initialize the Google client using your new key from the .env file
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // --- THE ANALYSIS FUNCTION (can be in a separate file or here) ---
+// NEW, MORE POWERFUL anaylzeResume FUNCTION
+
 async function analyzeResume(text) {
-  // ... (The exact same analyzeResume function from the previous answer)
-  // It takes text and returns the AI's JSON string analysis.
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content: "You are an expert career coach... (etc)"
-        },
-        {
-          role: "user",
-          content: `Please analyze the following resume... (etc) \n\n Resume Text: --- \n${text}\n ---`
-        }
-      ],
-      response_format: { type: "json_object" }
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash", // Fast and powerful
+      generationConfig: { responseMimeType: "application/json" }
     });
-    return response.choices[0].message.content;
+
+    const prompt = `
+      You are an expert career coach and professional resume writer with a keen eye for modern, clean design. Your task is to completely rewrite and reformat the provided resume text.
+
+      Instructions:
+      1.  **Rewrite for Impact:** Correct all grammar and spelling. Rephrase sentences to be more impactful, using strong action verbs and the STAR method (Situation, Task, Action, Result) where possible. Ensure all content is professional and concise.
+      2.  **Extract Key Information:** Parse the text to identify the main sections: Name, Contact Info (Email, Phone, LinkedIn, GitHub), Summary, Experience, Education, Projects, and Skills.
+      3.  **Structure the Output:** Return a single, valid JSON object. Do NOT include any text outside of the JSON object. The JSON object must have the following structure:
+          {
+            "name": "Full Name",
+            "contact": {
+              "email": "email@example.com",
+              "phone": "123-456-7890",
+              "linkedin": "linkedin.com/in/username",
+              "github": "github.com/username"
+            },
+            "summary": "A rewritten, impactful professional summary of 2-3 sentences.",
+            "experience": [
+              {
+                "role": "Job Title",
+                "company": "Company Name",
+                "duration": "Month Year - Month Year",
+                "description": "A rewritten, bulleted list of 3-4 achievements, starting with action verbs. Use markdown for bullets (e.g., '- Bullet 1\\n- Bullet 2')."
+              }
+            ],
+            "education": [
+              {
+                "degree": "Degree and Major",
+                "institution": "University Name",
+                "duration": "Month Year - Month Year"
+              }
+            ],
+            "projects": [
+              {
+                "name": "Project Name",
+                "description": "A rewritten, concise description of the project, focusing on the tech used and the outcome. Use markdown for bullets."
+              }
+            ],
+            "skills": {
+              "languages": ["JavaScript", "Python", "SQL"],
+              "frameworks": ["React", "Node.js", "Express"],
+              "tools": ["Git", "Docker", "Webpack"]
+            }
+          }
+
+      Analyze and transform the following resume text:
+      ---
+      ${text}
+      ---
+    `;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return response.text();
+
   } catch (error) {
-    console.error("Error calling OpenAI:", error);
-    throw new Error("Failed to get response from OpenAI.");
+    console.error("Error calling Google Gemini API:", error);
+    throw new Error("Failed to get response from Google Gemini API.");
   }
 }
 
-// --- ADD THIS NEW ENDPOINT TO YOUR EXISTING ROUTES ---
-// This is the core part you're adding.
-app.post('/api/analyze-resume', upload.single('resume'), async (req, res) => {
-  console.log("Received a request to /api/analyze-resume");
-  if (!req.file) {
-    return res.status(400).json({ error: "No file uploaded. Please upload a PDF." });
-  }
-  try {
-    const data = await pdf(req.file.buffer);
-    if (!data.text) {
-        return res.status(400).json({ error: "Could not extract text from the PDF." });
-    }
-    const analysisResultJson = await analyzeResume(data.text);
-    const analysisResultObject = JSON.parse(analysisResultJson);
-    res.json(analysisResultObject);
-  } catch (error) {
-    console.error("An error occurred during processing:", error);
-    res.status(500).json({ error: "An internal server error occurred." });
-  }
-});
-
 app.use(express.json()); // To parse JSON bodies
 app.use(express.urlencoded({ extended: false })); // To parse URL-encoded bodies
+
+
+// --- ADD THIS NEW ENDPOINT TO YOUR EXISTING ROUTES ---
+// This is the core part you're adding.
 
 // --- API Routes ---
 // This tells the server to use the experienceRoutes for any URL starting with /api/experiences
@@ -84,6 +112,7 @@ app.use('/api/experiences', require('./routes/experienceRoute'));
 // Add your user routes here when you create them
 
 app.use('/api/users', require('./routes/userRoutes'));
+app.use('/api/resume', resumeRoutes);
 // Basic route for testing
 app.get('/', (req, res) => {
     res.send('API is running...');
@@ -145,4 +174,3 @@ const startServer=async()=>{
     }
 };
 startServer();
-app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
