@@ -24,6 +24,6 @@
     "node-latex": "^3.1.0",
     "openai": "^5.12.1",
     "pdf-parse": "^1.1.1",
-    "puppeteer": "^24.16.0"
+    "puppeteer": "^24.16.1"
   }
 }
