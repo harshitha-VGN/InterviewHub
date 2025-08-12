@@ -13,7 +13,7 @@ const resumeRoutes = require('./routes/resumeRoutes');
 connectDB();
 
 const app = express();
-const JWT_SECRET=process.env.JWT_SECRET || 'buzNsUTtJVvLviJHQ/KGAsK1zdwk4U61bS0oWOvbfB4=';
+const JWT_SECRET=process.env.JWT_SECRET;
 
 // Middleware
 app.use(cors()); // Enable CORS for all routes
