@@ -1,8 +1,7 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react"; 
 import { useNavigate } from "react-router-dom";
 import axios from 'axios';
-import Toast from '../components/Toast'; // Make sure the path is correct
+import Toast from '../components/Toast';
 import { UserPlusIcon, ArrowRightOnRectangleIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 
 function AuthForm() {
@@ -19,9 +18,30 @@ function AuthForm() {
     const [showPassword, setShowPassword] = useState(false);
     const navigate = useNavigate();
 
+    const debounceTimeout = useRef(null);
+
     const handleNotification = (message, type) => {
         setNotification({ message, type });
     };
+
+    const checkUsernameAvailability = async (username) => {
+        if (username.length < 3) {
+            setErrors(prev => ({ ...prev, username: null }));
+            return;
+        }
+        try {
+            const { data } = await axios.get(`http://localhost:5050/api/auth/check-username/${username}`);
+           if (!data.isAvailable) {
+                setErrors(prev => ({ ...prev, username: 'This username is already taken.' }));
+                handleNotification('Username is already taken, please choose another.', 'error');
+            } else {
+                setErrors(prev => ({ ...prev, username: null })); 
+            }
+        } catch (error) {
+            console.error("Username check failed:", error);
+            }
+    };
+
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -29,18 +49,39 @@ function AuthForm() {
         if (errors[name]) {
             setErrors({ ...errors, [name]: null });
         }
+
+       
+        if (name === 'username' && !isLogin) {
+           if (debounceTimeout.current) {
+                clearTimeout(debounceTimeout.current);
+            }
+            debounceTimeout.current = setTimeout(() => {
+                checkUsernameAvailability(value);
+            }, 500); 
+        }
     };
+    useEffect(() => {
+        return () => {
+            if (debounceTimeout.current) {
+                clearTimeout(debounceTimeout.current);
+            }
+        };
+    }, []);
+
 
     const validateFormDetails = () => {
-        // ... (your validation logic remains the same)
-        let newerrors = {};
-        if (!isLogin && !formData.username) newerrors.username = "Username is required";
-        if (!formData.email) newerrors.email = "Email is required";
-        else if (!/\S+@\S+\.\S+/.test(formData.email)) newerrors.email = "Email is invalid";
-        if (formData.password.length < 8) newerrors.password = "Password must be at least 8 characters";
-        if (!isLogin && formData.password !== formData.confirmPassword) newerrors.confirmPassword = "Passwords do not match";
-        setErrors(newerrors);
-        return Object.keys(newerrors).length === 0;
+        let newErrors = {};
+        if (!isLogin && !formData.username) newErrors.username = "Username is required";
+        if (!formData.email) newErrors.email = "Email is required";
+        else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = "Email is invalid";
+        if (formData.password.length < 8) newErrors.password = "Password must be at least 8 characters";
+        if (!isLogin && formData.password !== formData.confirmPassword) newErrors.confirmPassword = "Passwords do not match";
+        if (errors.username) {
+            newErrors.username = errors.username;
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
     };
 
     const handleSubmit = async (e) => {
@@ -59,13 +100,16 @@ function AuthForm() {
                 const { token, username } = response.data;
                 localStorage.setItem('token', token);
                 localStorage.setItem('username', username);
-                navigate('/home'); // Navigate to profile page on login
+                navigate('/'); 
             } else {
                 handleNotification("Signup successful! Please log in to continue.", 'success');
-                switchForm(true); // Switch to login view
+                switchForm(true);
             }
         } catch (error) {
             const errorMessage = error.response?.data?.message || 'An unexpected error occurred. Please try again.';
+            if (error.response?.data?.field === 'username') {
+                setErrors(prev => ({ ...prev, username: errorMessage }));
+            }
             handleNotification(errorMessage, 'error');
             console.error('API Error:', error.response ? error.response.data : error.message);
         } finally {
@@ -88,7 +132,6 @@ function AuthForm() {
             />
             <div className="min-h-screen w-full bg-gray-100 flex items-center justify-center p-4 bg-cover bg-center" style={{backgroundImage: "url('https://images.unsplash.com/photo-1554147090-e1221a04a025?q=80&w=2670&auto=format&fit=crop')"}}>
                 <div className="max-w-md w-full backdrop-blur-lg bg-white/30 rounded-2xl shadow-2xl p-8 space-y-6 border border-white/40">
-                    {/* Header Section */}
                     <div className="text-center">
                         <h2 className="text-3xl font-extrabold text-gray-900">
                             {isLogin ? 'Welcome Back!' : 'Create Your Account'}
@@ -98,14 +141,13 @@ function AuthForm() {
                         </p>
                     </div>
 
-                    {/* Toggle Buttons */}
+                    
                     <div className="relative w-full bg-gray-200/50 rounded-full p-1 flex">
                         <span className={`absolute top-1 transition-all duration-300 ease-in-out h-[calc(100%-0.5rem)] w-1/2 bg-white rounded-full shadow-md ${isLogin ? 'left-1' : 'left-1/2 -translate-x-0'}`}></span>
                         <button onClick={() => switchForm(true)} className="relative w-1/2 py-2 text-sm font-bold text-gray-800 rounded-full z-10">Login</button>
                         <button onClick={() => switchForm(false)} className="relative w-1/2 py-2 text-sm font-bold text-gray-800 rounded-full z-10">Sign Up</button>
                     </div>
 
-                    {/* Form */}
                     <form onSubmit={handleSubmit} className="space-y-4">
                         {!isLogin && (
                             <InputField name="username" type="text" value={formData.username} onChange={handleChange} error={errors.username} placeholder="Username" />
@@ -132,7 +174,7 @@ function AuthForm() {
                         </button>
                     </form>
 
-                    {/* Bottom Link */}
+                    
                     <p className="text-center text-sm text-gray-600">
                         {isLogin ? "Don't have an account? " : "Already have an account? "}
                         <span onClick={() => switchForm(!isLogin)} className="font-medium text-indigo-600 hover:text-indigo-500 cursor-pointer">
@@ -145,7 +187,6 @@ function AuthForm() {
     );
 }
 
-// A reusable input field component to keep the form clean
 const InputField = ({ name, type, value, onChange, error, placeholder }) => (
     <div>
         <input
@@ -162,6 +203,5 @@ const InputField = ({ name, type, value, onChange, error, placeholder }) => (
         {error && <p className="mt-1 text-xs text-red-600 font-semibold">{error}</p>}
     </div>
 );
-
 
 export default AuthForm;

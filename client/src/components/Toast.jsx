@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { XCircleIcon, CheckCircleIcon } from '@heroicons/react/24/solid'; // You'll need to install heroicons: npm install @heroicons/react
-
+import { XCircleIcon, CheckCircleIcon } from '@heroicons/react/24/solid';
 const Toast = ({ message, type, onDismiss }) => {
     const [visible, setVisible] = useState(false);
 
@@ -9,7 +8,7 @@ const Toast = ({ message, type, onDismiss }) => {
             setVisible(true);
             const timer = setTimeout(() => {
                 handleDismiss();
-            }, 6000); // The pop-up will stay for 6 seconds
+            }, 6000); 
 
             return () => clearTimeout(timer);
         }
@@ -17,8 +16,7 @@ const Toast = ({ message, type, onDismiss }) => {
 
     const handleDismiss = () => {
         setVisible(false);
-        // Allow time for the fade-out animation before clearing the message
-        setTimeout(() => {
+       setTimeout(() => {
             onDismiss();
         }, 300); 
     };

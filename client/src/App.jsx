@@ -1,64 +1,56 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import Navbar from './components/navbar.jsx';
+import Footer from './components/Footer.jsx';
 import Profile from './pages/profile.jsx';
 import Dashboard from './pages/dashboard.jsx';
-import EditProfileModel from './components/editprofile.jsx';
 import MyExperiences from './pages/explore.jsx';
 import SubmitExperience from './pages/submitexperience.jsx';
 import './App.css';
 import AuthForm from './pages/authentication.jsx';
 import Home from './pages/Home.jsx';
 import MyContributions from './pages/MyContributions';
+ 
+import ResumeAnalyzerPage from './pages/ResumeAnalyzerPage';
 
-/**
- * A helper component to manage which pages show the Navbar
- * and to apply the main content padding.
- */
 const AppLayout = () => {
     const location = useLocation();
     
-    // CHANGE: Define the paths where you do NOT want the navbar to appear.
-    // The home page ('/') should now show the navbar.
-    const noNavbarPaths = ['/login', '/register']; // <-- CHANGE
-    
-    // Check if the current path is in the no-navbar list
+   
+    const noNavbarPaths = ['/login', '/register'];
     const showNavbar = !noNavbarPaths.includes(location.pathname);
 
     return (
         <>
             {showNavbar && <Navbar />}
-            <main className={showNavbar ? "pt-28" : ""}>
+           <main className={showNavbar ? "pt-24" : ""}>
                 <Routes>
-                    {/* The Home page is now the default entry point */}
-                    <Route path="/" element={<Home />} /> {/* <-- CHANGE */}
-                    
-                    {/* The Authentication form now lives at /login */}
-                    <Route path="/login" element={<AuthForm />} /> {/* <-- NEW */}
-                    
-                    {/* The /register path still correctly points to the AuthForm */}
+                    <Route path="/" element={<Home />} />
+                    <Route path="/login" element={<AuthForm />} />
                     <Route path="/register" element={<AuthForm />} />
-                    
-                    {/* All your other routes remain the same */}
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/dashboard" element={<Dashboard />} />
-                    <Route path="/editprofile" element={<EditProfileModel />} />
                     <Route path="/explore" element={<MyExperiences />} />
                     <Route path="/submitexperience" element={<SubmitExperience />} />
                     <Route path="/myexperience" element={<MyContributions />} />
-
-                    {/* The old /home route is no longer needed, as "/" is the new home */}
+                    <Route path="/resume-analyzer" element={<ResumeAnalyzerPage />} />
                 </Routes>
             </main>
+             {showNavbar && <Footer />}
         </>
     );
 };
 
 function App() {
     return (
-        <Router>
-            <AppLayout />
-        </Router>
+          <div 
+            className="w-full min-h-screen bg-cover bg-center bg-fixed"
+            style={{backgroundImage: "url('https://images.unsplash.com/photo-1554147090-e1221a04a025?q=80&w=2670&auto-format&fit=crop')"}}
+        >
+            <Router>
+                <AppLayout />
+            </Router>
+        </div>
     );
 }
 

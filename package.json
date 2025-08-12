@@ -7,6 +7,8 @@
     "dev": "concurrently \"npm run dev --prefix client\" \"npm start --prefix server\""
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "node-latex": "^3.1.0",
     "nodemon": "^3.1.10"
   },
   "name": "project",
