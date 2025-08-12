@@ -143,3 +143,6 @@ const ResumeUploader = () => {
 };
 
 export default ResumeUploader;
+
+// client/src/components/ResumeUploader.jsx
+
