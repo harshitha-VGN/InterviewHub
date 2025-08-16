@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import ExperienceCard from './experiencecard.jsx';
-
+const API_URL = import.meta.env.CLIENT_URL || 'http://localhost:5050';
 function MyContributions() {
     const [myExperiences, setMyExperiences] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -24,7 +24,7 @@ function MyContributions() {
 
             try {
                
-                const response = await axios.get('http://localhost:5050/api/experiences/my', {
+                const response = await axios.get(`${API_URL}/api/experiences/my`, {
                     params: {
                         username: username 
                     }
