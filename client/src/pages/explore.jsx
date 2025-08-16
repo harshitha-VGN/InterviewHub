@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import ExperienceCard from './experiencecard.jsx';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom'; 
-const API_URL = import.meta.env.CLIENT_URL || 'http://localhost:5050';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5050';
 function MyExperiences() {
     const [experiences, setExperiences] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
