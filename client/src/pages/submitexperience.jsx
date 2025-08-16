@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Toast from '../components/Toast'; 
 import { PaperAirplaneIcon } from '@heroicons/react/24/solid';
-
+const API_URL = import.meta.env.CLIENT_URL || 'http://localhost:5050';
 const SubmitExperience = () => {
     const [formData, setFormData] = useState({
         role: '',
@@ -41,7 +41,7 @@ const SubmitExperience = () => {
 
         try {
             const payload = { ...formData, username };
-            await axios.post('http://localhost:5050/api/experiences/new', payload);
+            await axios.post(`${API_URL}/api/experiences/new`, payload);
 
             handleNotification('Experience submitted successfully! Redirecting...', 'success');
             setTimeout(() => navigate("/explore"), 2000); 
