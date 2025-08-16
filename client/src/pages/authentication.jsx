@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from 'axios';
 import Toast from '../components/Toast';
 import { UserPlusIcon, ArrowRightOnRectangleIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
+const API_URL = import.meta.env.CLIENT_URL || 'http://localhost:5050';
 
 function AuthForm() {
     const [isLogin, setIsLogin] = useState(true);
@@ -30,7 +31,7 @@ function AuthForm() {
             return;
         }
         try {
-            const { data } = await axios.get(`http://localhost:5050/api/auth/check-username/${username}`);
+            const { data } = await axios.get(`${API_URL}/api/auth/check-username/${username}`);
            if (!data.isAvailable) {
                 setErrors(prev => ({ ...prev, username: 'This username is already taken.' }));
                 handleNotification('Username is already taken, please choose another.', 'error');
@@ -95,7 +96,7 @@ function AuthForm() {
             : { username: formData.username, email: formData.email, password: formData.password };
 
         try {
-            const response = await axios.post(`http://localhost:5050${endpoint}`, payload);
+            const response = await axios.post(`${API_URL}${endpoint}`, payload);
             if (isLogin) {
                 const { token, username } = response.data;
                 localStorage.setItem('token', token);
