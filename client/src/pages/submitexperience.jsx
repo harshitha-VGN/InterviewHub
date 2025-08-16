@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Toast from '../components/Toast'; 
 import { PaperAirplaneIcon } from '@heroicons/react/24/solid';
-const API_URL = import.meta.env.CLIENT_URL || 'http://localhost:5050';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5050';
 const SubmitExperience = () => {
     const [formData, setFormData] = useState({
         role: '',
