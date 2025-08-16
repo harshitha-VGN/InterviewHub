@@ -18,7 +18,7 @@ const JWT_SECRET=process.env.JWT_SECRET;
 // Middleware
 app.use(cors()); // Enable CORS for all routes
 app.use(cors({
-  origin: 'http://localhost:3000', // or the frontend port you're using
+  origin: process.env.CLIENT_URL, // or the frontend port you're using
   credentials: true
 }));
 
