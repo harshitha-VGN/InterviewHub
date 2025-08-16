@@ -4,6 +4,8 @@ import axios from 'axios';
 import Toast from '../components/Toast'; 
 import EditProfileModel from '../components/editprofile.jsx';
 import { ArrowRightIcon, PencilSquareIcon, ArrowLeftOnRectangleIcon } from '@heroicons/react/24/solid';
+const API_URL = import.meta.env.CLIENT_URL || 'http://localhost:5050';
+
 
 const Profile = () => {
     const navigate = useNavigate();
@@ -21,7 +23,7 @@ const Profile = () => {
             }
             try {
                 const config = { headers: { Authorization: `Bearer ${token}` } };
-                const { data } = await axios.get('http://localhost:5050/api/users/profile', config);
+                const { data } = await axios.get(`${API_URL}/api/users/profile`, config);
                 setUser(data);
             } catch (err) {
                 console.error('Failed to fetch user profile:', err);
@@ -59,7 +61,7 @@ const Profile = () => {
         }
         try {
             const config = { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } };
-            const { data } = await axios.put('http://localhost:5050/api/users/profile', updatedData, config);
+            const { data } = await axios.put(`${API_URL}/api/users/profile`, updatedData, config);
             setUser(data);
             if (localStorage.getItem('username') !== data.username) {
                 localStorage.setItem('username', data.username);
