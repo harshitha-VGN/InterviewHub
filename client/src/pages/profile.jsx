@@ -4,7 +4,7 @@ import axios from 'axios';
 import Toast from '../components/Toast'; 
 import EditProfileModel from '../components/editprofile.jsx';
 import { ArrowRightIcon, PencilSquareIcon, ArrowLeftOnRectangleIcon } from '@heroicons/react/24/solid';
-const API_URL = import.meta.env.CLIENT_URL || 'http://localhost:5050';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5050';
 
 
 const Profile = () => {
