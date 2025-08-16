@@ -61,24 +61,6 @@ const getAIPrompt_JSON = (resumeText, jobDescription) => {
     Now, generate the complete, enhanced resume as a single, valid JSON object.
     `;
 };
-// --- TEMPLATE: The final, professional HTML template with embedded SVG icons ---
-// In server/routes/resumeRoutes.js
-
-// In server/routes/resumeRoutes.js
-
-// In server/routes/resumeRoutes.js
-
-// In server/routes/resumeRoutes.js
-
-// In server/routes/resumeRoutes.js
-
-// In server/routes/resumeRoutes.js
-
-// In server/routes/resumeRoutes.js
-
-// In server/routes/resumeRoutes.js
-
-// In server/routes/resumeRoutes.js
 
 const getResumeHTML = (data) => {
   const { name, contact = {}, links = {}, summary, projects = [], education = [], skills = [], achievements = [] } = data;
@@ -226,7 +208,14 @@ router.post('/analyze', upload.single('resume'), async (req, res) => {
     
     console.log("Successfully parsed resume data from AI.");
 
-    const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+const browser = await puppeteer.launch({
+  headless: 'new', 
+  args: [
+    '--no-sandbox',
+    '--disable-setuid-sandbox'
+  ]
+});
+   
     const page = await browser.newPage();
     
     const htmlContent = getResumeHTML(resumeData);
@@ -255,4 +244,5 @@ router.post('/analyze', upload.single('resume'), async (req, res) => {
 });
 
 module.exports = router;
+
 
