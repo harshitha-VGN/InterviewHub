@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import ExperienceCard from './experiencecard.jsx';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom'; 
-
+const API_URL = import.meta.env.CLIENT_URL || 'http://localhost:5050';
 function MyExperiences() {
     const [experiences, setExperiences] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -15,7 +15,7 @@ function MyExperiences() {
     useEffect(() => {
         const fetchExperiences = async () => {
             try {
-                const response = await axios.get('http://localhost:5050/api/experiences');
+                const response = await axios.get(`${API_URL}/api/experiences`);
                 setExperiences(response.data);
                 console.log('Fetched Experiences:', response.data);
                 setIsLoading(false);
