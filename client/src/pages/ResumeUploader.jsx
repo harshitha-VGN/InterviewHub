@@ -3,7 +3,7 @@ import axios from 'axios';
 import { saveAs } from 'file-saver';
 import Toast from '../components/Toast'; 
 import { DocumentArrowUpIcon, DocumentMagnifyingGlassIcon } from '@heroicons/react/24/solid';
-
+const API_URL = import.meta.env.CLIENT_URL || 'http://localhost:5050';
 const ResumeUploader = () => {
     const [resumeFile, setResumeFile] = useState(null);
     const [jobDescription, setJobDescription] = useState('');
@@ -51,7 +51,7 @@ const ResumeUploader = () => {
         formData.append('jobDescription', jobDescription);
 
         try {
-            const response = await axios.post('http://localhost:5050/api/resume/analyze', formData, {
+            const response = await axios.post(`${API_URL}/api/resume/analyze`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
                 responseType: 'blob',
             });
