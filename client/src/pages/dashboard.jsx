@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Home from './Home.jsx';
 import { ArrowRightIcon } from '@heroicons/react/24/solid';
-
+const API_URL = import.meta.env.CLIENT_URL || 'http://localhost:5050';
 const ProfileSidebar = () => {
 
     const [user, setUser] = useState(null);
@@ -19,7 +19,7 @@ const ProfileSidebar = () => {
             }
             try {
                 const config = { headers: { Authorization: `Bearer ${token}` } };
-                const { data } = await axios.get('http://localhost:5050/api/users/profile', config);
+                const { data } = await axios.get(`${API_URL}/api/users/profile`, config);
                 setUser(data);
             } catch (err) {
                 console.error("Failed to fetch profile sidebar data:", err);
