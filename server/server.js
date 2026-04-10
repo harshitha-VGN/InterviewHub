@@ -133,7 +133,9 @@ try{
     res.status(201).json({message:'User created successfully!!'});
 }catch(error){
     console.error('Signup error:',error);
-    res.status(500).json({message:'Server error during signip',error:error.message});
+    
+  
+    res.status(500).json({message:'Server error during signup',error:error.message});
 }
 
 });
