@@ -121,6 +121,7 @@ function AuthForm() {
     const switchForm = (toLogin) => {
         setIsLogin(toLogin);
         setErrors({});
+        setNotification({ message: '', type: '' });
         setFormData({ username: '', email: '', password: '', confirmPassword: '' });
     };
 
