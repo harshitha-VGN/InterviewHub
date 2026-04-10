@@ -1,28 +1,12 @@
-
-// server/routes/resumeRoutes.js
-
 const express = require('express');
 const multer = require('multer');
 const pdf = require('pdf-parse');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const fs = require('fs');
-const puppeteer = require('puppeteer');
+const htmlPdf = require('html-pdf-node');
 const JSON5 = require('json5');
 
 const router = express.Router();
-
-// --- PROMPT: The final, robust version for JSON generation with precise link handling ---
-// In server/routes/resumeRoutes.js
-
-// In server/routes/resumeRoutes.js
-
-// In server/routes/resumeRoutes.js
-
-// In server/routes/resumeRoutes.js
-
-// In server/routes/resumeRoutes.js
-
-// In server/routes/resumeRoutes.js
 
 const getAIPrompt_JSON = (resumeText, jobDescription) => {
   return `
@@ -73,7 +57,7 @@ const getResumeHTML = (data) => {
   };
 
   const createList = (items) => (items || []).map(item => `<li>${item}</li>`).join('');
-  
+
   return `
     <!DOCTYPE html>
     <html lang="en">
@@ -83,7 +67,7 @@ const getResumeHTML = (data) => {
         <style>
             @import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap');
             body { font-family: 'Lato', sans-serif; font-size: 11pt; line-height: 1.5; color: #333333; }
-            .page { width: 8.5in; height: 11in; box-sizing: border-box; padding: 0.8in; }
+            .page { width: 8.5in; box-sizing: border-box; padding: 0.8in; }
             a { color: #0073b1; text-decoration: none; }
             a:hover { text-decoration: underline; }
             .header { text-align: center; margin-bottom: 25px; }
@@ -115,9 +99,9 @@ const getResumeHTML = (data) => {
                     ${links.github ? `<a class="contact-item" href="${links.github}" target="_blank">${icons.github}GitHub</a>` : ''}
                 </div>
             </div>
-            
+
             ${summary ? `<section><h2>Summary</h2><p>${summary}</p></section>` : ''}
-            
+
             ${education.length > 0 ? `
             <section>
                 <h2>Education</h2>
@@ -155,7 +139,7 @@ const getResumeHTML = (data) => {
                     ${skills.map(s => `<li><strong>${s.category || ''}:</strong> <span>${s.items || ''}</span></li>`).join('')}
                 </ul>
             </section>` : ''}
-            
+
             ${achievements.length > 0 ? `
             <section>
                 <h2>Achievements</h2>
@@ -165,8 +149,9 @@ const getResumeHTML = (data) => {
     </body>
     </html>`;
 };
-// --- ROUTE: The final, robust server logic ---
+
 const upload = multer({ dest: 'uploads/' });
+
 router.post('/analyze', upload.single('resume'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No resume file uploaded.' });
@@ -186,7 +171,7 @@ router.post('/analyze', upload.single('resume'), async (req, res) => {
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
-    
+
     const prompt = getAIPrompt_JSON(resumeText, jobDescription);
     const result = await model.generateContent(prompt);
     const response = await result.response;
@@ -194,36 +179,28 @@ router.post('/analyze', upload.single('resume'), async (req, res) => {
 
     let resumeData;
     try {
-        const firstBraceIndex = rawTextFromAI.indexOf('{');
-        const lastBraceIndex = rawTextFromAI.lastIndexOf('}');
-        if (firstBraceIndex === -1 || lastBraceIndex === -1) {
-            throw new Error("No JSON object found in AI response.");
-        }
-        const jsonSubstring = rawTextFromAI.substring(firstBraceIndex, lastBraceIndex + 1);
-        resumeData = JSON5.parse(jsonSubstring);
-    } catch(e) {
-        console.error("Failed to extract or parse JSON from AI response:", rawTextFromAI);
-        throw new Error("The AI returned an unrecoverable data format.");
+      const firstBraceIndex = rawTextFromAI.indexOf('{');
+      const lastBraceIndex = rawTextFromAI.lastIndexOf('}');
+      if (firstBraceIndex === -1 || lastBraceIndex === -1) {
+        throw new Error("No JSON object found in AI response.");
+      }
+      const jsonSubstring = rawTextFromAI.substring(firstBraceIndex, lastBraceIndex + 1);
+      resumeData = JSON5.parse(jsonSubstring);
+    } catch (e) {
+      console.error("Failed to extract or parse JSON from AI response:", rawTextFromAI);
+      throw new Error("The AI returned an unrecoverable data format.");
     }
-    
+
     console.log("Successfully parsed resume data from AI.");
 
-const browser = await puppeteer.launch({
-  headless: 'new', 
-  args: [
-    '--no-sandbox',
-    '--disable-setuid-sandbox'
-  ]
-});
-   
-    const page = await browser.newPage();
-    
     const htmlContent = getResumeHTML(resumeData);
-    
-    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
-    const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
 
-    await browser.close();
+    // Use html-pdf-node instead of Puppeteer — works without Chrome binary
+    const file = { content: htmlContent };
+    const options = { format: 'A4' };
+
+    const pdfBuffer = await htmlPdf.generatePdf(file, options);
+
     console.log("PDF generated successfully.");
 
     res.setHeader('Content-Type', 'application/pdf');
@@ -244,5 +221,3 @@ const browser = await puppeteer.launch({
 });
 
 module.exports = router;
-
-
