@@ -173,6 +173,7 @@ router.post('/analyze', upload.single('resume'), async (req, res) => {
   }
 
   const tempFilePath = req.file.path;
+  let browser = null;
 
   try {
     const { jobDescription } = req.body;
@@ -180,62 +181,79 @@ router.post('/analyze', upload.single('resume'), async (req, res) => {
       return res.status(400).json({ error: 'Job description is required.' });
     }
 
-    const dataBuffer = fs.readFileSync(tempFilePath);
-    const data = await pdf(dataBuffer);
-    const resumeText = data.text;
+    // Step 1: Parse the PDF
+    let resumeText;
+    try {
+      const dataBuffer = fs.readFileSync(tempFilePath);
+      const data = await pdf(dataBuffer);
+      resumeText = data.text;
+      if (!resumeText || resumeText.trim().length === 0) {
+        return res.status(400).json({ errorType: 'PDF_ERROR', error: 'Could not extract text from the uploaded PDF. Please ensure the file is not scanned or image-based.' });
+      }
+    } catch (pdfError) {
+      console.error('PDF_ERROR - Failed to parse PDF:', pdfError);
+      return res.status(400).json({ errorType: 'PDF_ERROR', error: 'Failed to read the uploaded PDF file. Please upload a valid, text-based PDF.' });
+    }
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
-    
-    const prompt = getAIPrompt_JSON(resumeText, jobDescription);
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    let rawTextFromAI = response.text();
-
+    // Step 2: Call the Gemini AI model
     let resumeData;
     try {
-        const firstBraceIndex = rawTextFromAI.indexOf('{');
-        const lastBraceIndex = rawTextFromAI.lastIndexOf('}');
-        if (firstBraceIndex === -1 || lastBraceIndex === -1) {
-            throw new Error("No JSON object found in AI response.");
-        }
-        const jsonSubstring = rawTextFromAI.substring(firstBraceIndex, lastBraceIndex + 1);
-        resumeData = JSON5.parse(jsonSubstring);
-    } catch(e) {
-        console.error("Failed to extract or parse JSON from AI response:", rawTextFromAI);
-        throw new Error("The AI returned an unrecoverable data format.");
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+      const prompt = getAIPrompt_JSON(resumeText, jobDescription);
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const rawTextFromAI = response.text();
+
+      const firstBraceIndex = rawTextFromAI.indexOf('{');
+      const lastBraceIndex = rawTextFromAI.lastIndexOf('}');
+      if (firstBraceIndex === -1 || lastBraceIndex === -1) {
+        throw new Error("No JSON object found in AI response.");
+      }
+      const jsonSubstring = rawTextFromAI.substring(firstBraceIndex, lastBraceIndex + 1);
+      resumeData = JSON5.parse(jsonSubstring);
+      console.log("Successfully parsed resume data from AI.");
+    } catch (modelError) {
+      console.error('MODEL_ERROR - Gemini AI call or JSON parsing failed:', modelError);
+      return res.status(500).json({ errorType: 'MODEL_ERROR', error: 'The AI model failed to process your resume. Please try again in a moment.' });
     }
-    
-    console.log("Successfully parsed resume data from AI.");
 
-const browser = await puppeteer.launch({
-  headless: 'new', 
-  args: [
-    '--no-sandbox',
-    '--disable-setuid-sandbox'
-  ]
-});
-   
-    const page = await browser.newPage();
-    
-    const htmlContent = getResumeHTML(resumeData);
-    
-    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
-    const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
+    // Step 3: Generate the PDF with Puppeteer
+    try {
+      browser = await puppeteer.launch({
+        headless: 'new',
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox'
+        ]
+      });
 
-    await browser.close();
-    console.log("PDF generated successfully.");
+      const page = await browser.newPage();
+      const htmlContent = getResumeHTML(resumeData);
+      await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+      const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
+      await browser.close();
+      browser = null;
+      console.log("PDF generated successfully.");
 
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'attachment; filename=revised-resume.pdf');
-    res.send(pdfBuffer);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename=revised-resume.pdf');
+      res.send(pdfBuffer);
+    } catch (browserError) {
+      console.error('BROWSER_ERROR - Puppeteer PDF generation failed:', browserError);
+      return res.status(500).json({ errorType: 'BROWSER_ERROR', error: 'Failed to generate the PDF document. Please try again.' });
+    }
 
   } catch (error) {
-    console.error('Error during resume analysis:', error.message);
+    console.error('Error during resume analysis:', error);
     if (!res.headersSent) {
-      res.status(500).json({ error: 'An error occurred during analysis.' });
+      res.status(500).json({ error: 'An unexpected error occurred during analysis. Please try again.' });
     }
   } finally {
+    if (browser) {
+      try { await browser.close(); } catch (closeError) { console.error('Failed to close browser:', closeError); }
+    }
     if (fs.existsSync(tempFilePath)) {
       fs.unlinkSync(tempFilePath);
       console.log(`Cleaned up temporary file: ${tempFilePath}`);
