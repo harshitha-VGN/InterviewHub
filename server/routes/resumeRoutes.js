@@ -3,7 +3,8 @@ const multer = require('multer');
 const pdf = require('pdf-parse');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const fs = require('fs');
-const htmlPdf = require('html-pdf-node');
+const puppeteer = require('puppeteer-core');
+const chromium = require('@sparticuz/chromium');
 const JSON5 = require('json5');
 
 const router = express.Router();
@@ -187,7 +188,7 @@ router.post('/analyze', upload.single('resume'), async (req, res) => {
       const jsonSubstring = rawTextFromAI.substring(firstBraceIndex, lastBraceIndex + 1);
       resumeData = JSON5.parse(jsonSubstring);
     } catch (e) {
-      console.error("Failed to extract or parse JSON from AI response:", rawTextFromAI);
+      console.error("Failed to parse JSON from AI response:", rawTextFromAI);
       throw new Error("The AI returned an unrecoverable data format.");
     }
 
@@ -195,11 +196,18 @@ router.post('/analyze', upload.single('resume'), async (req, res) => {
 
     const htmlContent = getResumeHTML(resumeData);
 
-    // Use html-pdf-node instead of Puppeteer — works without Chrome binary
-    const file = { content: htmlContent };
-    const options = { format: 'A4' };
+    // Use puppeteer-core + @sparticuz/chromium (works on Render free tier)
+    const browser = await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+    });
 
-    const pdfBuffer = await htmlPdf.generatePdf(file, options);
+    const page = await browser.newPage();
+    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+    const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
+    await browser.close();
 
     console.log("PDF generated successfully.");
 
