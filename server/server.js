@@ -18,7 +18,11 @@ const JWT_SECRET=process.env.JWT_SECRET;
 
 // Middleware
 app.use(cors({
-  origin: [process.env.CLIENT_URL, 'http://localhost:3000'], // Allow both deployed and local frontend
+  origin: [
+    process.env.CLIENT_URL,
+    'http://localhost:3000',
+    'https://interviewhub-two.vercel.app'
+  ], // Allow local and dual-deployed frontends
   credentials: true
 }));
 
