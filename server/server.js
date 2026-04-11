@@ -1,3 +1,4 @@
+delete global.DOMMatrix; // Fix for pdf-parse in Node.js 21+
 const multer = require('multer');
 const pdf = require('pdf-parse');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
@@ -16,9 +17,8 @@ const app = express();
 const JWT_SECRET=process.env.JWT_SECRET;
 
 // Middleware
-// app.use(cors()); // Enable CORS for all routes
 app.use(cors({
-  origin: process.env.CLIENT_URL, // or the frontend port you're using
+  origin: [process.env.CLIENT_URL, 'http://localhost:3000'], // Allow both deployed and local frontend
   credentials: true
 }));
 
