@@ -1,5 +1,6 @@
 const express = require('express');
 const multer = require('multer');
+delete global.DOMMatrix; // Fixes pdf-parse crashing in Node.js 21+ environments
 const pdf = require('pdf-parse');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const fs = require('fs');
@@ -151,14 +152,12 @@ const getResumeHTML = (data) => {
     </html>`;
 };
 
-const upload = multer({ dest: 'uploads/' });
+const upload = multer({ storage: multer.memoryStorage() });
 
 router.post('/analyze', upload.single('resume'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No resume file uploaded.' });
   }
-
-  const tempFilePath = req.file.path;
 
   try {
     const { jobDescription } = req.body;
@@ -166,12 +165,12 @@ router.post('/analyze', upload.single('resume'), async (req, res) => {
       return res.status(400).json({ error: 'Job description is required.' });
     }
 
-    const dataBuffer = fs.readFileSync(tempFilePath);
+    const dataBuffer = req.file.buffer;
     const data = await pdf(dataBuffer);
     const resumeText = data.text;
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
     const prompt = getAIPrompt_JSON(resumeText, jobDescription);
     const result = await model.generateContent(prompt);
@@ -216,14 +215,9 @@ router.post('/analyze', upload.single('resume'), async (req, res) => {
     res.send(pdfBuffer);
 
   } catch (error) {
-    console.error('Error during resume analysis:', error.message);
+    console.error('Error during resume analysis:', error);
     if (!res.headersSent) {
-      res.status(500).json({ error: 'An error occurred during analysis.' });
-    }
-  } finally {
-    if (fs.existsSync(tempFilePath)) {
-      fs.unlinkSync(tempFilePath);
-      console.log(`Cleaned up temporary file: ${tempFilePath}`);
+      res.status(500).json({ error: error.stack || error.message || 'An error occurred' });
     }
   }
 });

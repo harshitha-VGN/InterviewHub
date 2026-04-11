@@ -1,0 +1,4 @@
+[dotenv@17.2.1] injecting env (5) from .env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+Test server running on 5052
+Successfully parsed resume data from AI.
+PDF generated successfully.

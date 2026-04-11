@@ -1,0 +1,4 @@
+[dotenv@17.2.1] injecting env (5) from .env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+MongoDB connected: undefined
+Server is running on http://localhost:5050
+MongoDB connected: ac-gxqrwoa-shard-00-00.09iaqus.mongodb.net
