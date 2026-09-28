@@ -152,22 +152,64 @@ const getResumeHTML = (data) => {
     </html>`;
 };
 
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB max file size limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF files are allowed. Please upload a valid PDF document.'));
+    }
+  },
+});
 
-router.post('/analyze', upload.single('resume'), async (req, res) => {
+const uploadResumeMiddleware = (req, res, next) => {
+  upload.single('resume')(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ error: 'File size exceeds limit of 10MB.' });
+      }
+      return res.status(400).json({ error: err.message });
+    } else if (err) {
+      return res.status(400).json({ error: err.message });
+    }
+    next();
+  });
+};
+
+router.post('/analyze', uploadResumeMiddleware, async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No resume file uploaded.' });
   }
 
+  let browser = null;
+
   try {
     const { jobDescription } = req.body;
-    if (!jobDescription) {
+    if (!jobDescription || !jobDescription.trim()) {
       return res.status(400).json({ error: 'Job description is required.' });
     }
 
     const dataBuffer = req.file.buffer;
-    const data = await pdf(dataBuffer);
-    const resumeText = data.text;
+    let resumeText = '';
+    try {
+      const data = await pdf(dataBuffer);
+      resumeText = data.text ? data.text.trim() : '';
+    } catch (pdfError) {
+      console.error('PDF parsing error:', pdfError.message);
+      return res.status(400).json({
+        error: 'Unable to parse PDF. The file may be corrupted or password-protected.'
+      });
+    }
+
+    if (!resumeText || resumeText.length < 50) {
+      return res.status(400).json({
+        error: 'Uploaded PDF contains no readable text. Scanned or image-only PDFs are not supported.'
+      });
+    }
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
@@ -196,7 +238,7 @@ router.post('/analyze', upload.single('resume'), async (req, res) => {
     const htmlContent = getResumeHTML(resumeData);
 
     // Use puppeteer-core + @sparticuz/chromium (works on Render free tier)
-    const browser = await puppeteer.launch({
+    browser = await puppeteer.launch({
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
       executablePath: await chromium.executablePath(),
@@ -206,7 +248,6 @@ router.post('/analyze', upload.single('resume'), async (req, res) => {
     const page = await browser.newPage();
     await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
     const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
-    await browser.close();
 
     console.log("PDF generated successfully.");
 
@@ -217,7 +258,16 @@ router.post('/analyze', upload.single('resume'), async (req, res) => {
   } catch (error) {
     console.error('Error during resume analysis:', error);
     if (!res.headersSent) {
-      res.status(500).json({ error: error.stack || error.message || 'An error occurred' });
+      res.status(500).json({ error: error.message || 'An error occurred during resume analysis.' });
+    }
+  } finally {
+    if (browser) {
+      try {
+        await browser.close();
+        console.log("Puppeteer browser closed successfully.");
+      } catch (closeError) {
+        console.error("Error closing browser:", closeError);
+      }
     }
   }
 });

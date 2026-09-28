@@ -1,14 +1,17 @@
 # Dependencies
-/node_modules
+node_modules/
+**/node_modules/
 
 # Production
 /build
+dist/
 
 # Misc
 .DS_Store
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+INTERVIEW_PREP.md
 
 # Environment variables
 .env

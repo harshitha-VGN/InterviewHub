@@ -14,27 +14,46 @@ const ResumeUploader = () => {
         setNotification({ message, type });
     };
 
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
     const handleFileChange = (e) => {
         const file = e.target.files[0];
-        if (file && file.type === 'application/pdf') {
-            setResumeFile(file);
-        } else {
+        if (!file) return;
+
+        if (file.type !== 'application/pdf') {
             setResumeFile(null);
             handleNotification('Please upload a valid PDF file.', 'error');
+            return;
         }
+
+        if (file.size > MAX_FILE_SIZE) {
+            setResumeFile(null);
+            handleNotification('File size exceeds the 10MB limit. Please upload a smaller file.', 'error');
+            return;
+        }
+
+        setResumeFile(file);
     };
-    
     
     const handleDragOver = (e) => e.preventDefault();
     const handleDrop = (e) => {
         e.preventDefault();
         const file = e.dataTransfer.files[0];
-        if (file && file.type === 'application/pdf') {
-            setResumeFile(file);
-        } else {
+        if (!file) return;
+
+        if (file.type !== 'application/pdf') {
             setResumeFile(null);
             handleNotification('Please upload a valid PDF file.', 'error');
+            return;
         }
+
+        if (file.size > MAX_FILE_SIZE) {
+            setResumeFile(null);
+            handleNotification('File size exceeds the 10MB limit. Please upload a smaller file.', 'error');
+            return;
+        }
+
+        setResumeFile(file);
     };
 
     const handleSubmit = async (e) => {
