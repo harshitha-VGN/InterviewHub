@@ -2,7 +2,7 @@ const express = require('express');
 const multer = require('multer');
 delete global.DOMMatrix; // Fixes pdf-parse crashing in Node.js 21+ environments
 const pdf = require('pdf-parse');
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { GoogleGenerativeAI, SchemaType } = require("@google/generative-ai");
 const fs = require('fs');
 const puppeteer = require('puppeteer-core');
 const chromium = require('@sparticuz/chromium');
@@ -46,6 +46,74 @@ const getAIPrompt_JSON = (resumeText, jobDescription) => {
 
     Now, generate the complete, enhanced resume as a single, valid JSON object.
     `;
+};
+
+const resumeSchema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    name: { type: SchemaType.STRING },
+    contact: {
+      type: SchemaType.OBJECT,
+      properties: {
+        email: { type: SchemaType.STRING },
+        phone: { type: SchemaType.STRING },
+        location: { type: SchemaType.STRING },
+      },
+    },
+    links: {
+      type: SchemaType.OBJECT,
+      properties: {
+        github: { type: SchemaType.STRING },
+        linkedin: { type: SchemaType.STRING },
+        leetcode: { type: SchemaType.STRING },
+      },
+    },
+    summary: { type: SchemaType.STRING },
+    education: {
+      type: SchemaType.ARRAY,
+      items: {
+        type: SchemaType.OBJECT,
+        properties: {
+          university: { type: SchemaType.STRING },
+          degree: { type: SchemaType.STRING },
+          date: { type: SchemaType.STRING },
+          gpa: { type: SchemaType.STRING },
+        },
+      },
+    },
+    projects: {
+      type: SchemaType.ARRAY,
+      items: {
+        type: SchemaType.OBJECT,
+        properties: {
+          title: { type: SchemaType.STRING },
+          tech: { type: SchemaType.STRING },
+          link: { type: SchemaType.STRING },
+          description: {
+            type: SchemaType.ARRAY,
+            items: { type: SchemaType.STRING },
+          },
+        },
+        required: ["title", "description"],
+      },
+    },
+    skills: {
+      type: SchemaType.ARRAY,
+      items: {
+        type: SchemaType.OBJECT,
+        properties: {
+          category: { type: SchemaType.STRING },
+          items: { type: SchemaType.STRING },
+        },
+        required: ["category", "items"],
+      },
+    },
+    achievements: {
+      type: SchemaType.ARRAY,
+      items: { type: SchemaType.STRING },
+    },
+  },
+  required: ["name", "skills", "projects", "education"],
 };
 
 const getResumeHTML = (data) => {
@@ -212,7 +280,13 @@ router.post('/analyze', uploadResumeMiddleware, async (req, res) => {
     }
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+    const model = genAI.getGenerativeModel({
+      model: "gemini-flash-latest",
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: resumeSchema,
+      },
+    });
 
     const prompt = getAIPrompt_JSON(resumeText, jobDescription);
     const result = await model.generateContent(prompt);
@@ -221,13 +295,7 @@ router.post('/analyze', uploadResumeMiddleware, async (req, res) => {
 
     let resumeData;
     try {
-      const firstBraceIndex = rawTextFromAI.indexOf('{');
-      const lastBraceIndex = rawTextFromAI.lastIndexOf('}');
-      if (firstBraceIndex === -1 || lastBraceIndex === -1) {
-        throw new Error("No JSON object found in AI response.");
-      }
-      const jsonSubstring = rawTextFromAI.substring(firstBraceIndex, lastBraceIndex + 1);
-      resumeData = JSON5.parse(jsonSubstring);
+      resumeData = JSON.parse(rawTextFromAI);
     } catch (e) {
       console.error("Failed to parse JSON from AI response:", rawTextFromAI);
       throw new Error("The AI returned an unrecoverable data format.");
