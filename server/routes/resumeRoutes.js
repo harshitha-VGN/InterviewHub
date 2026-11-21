@@ -289,15 +289,23 @@ router.post('/analyze', uploadResumeMiddleware, async (req, res) => {
     });
 
     const prompt = getAIPrompt_JSON(resumeText, jobDescription);
-    const result = await model.generateContent(prompt);
+    console.log("Calling Gemini API...");
+    let result;
+    try {
+      result = await model.generateContent(prompt);
+    } catch (geminiError) {
+      console.error("Gemini API call failed:", geminiError.message, geminiError.status || '');
+      throw new Error(`AI service error: ${geminiError.message}`);
+    }
     const response = await result.response;
     let rawTextFromAI = response.text();
+    console.log("Gemini raw response length:", rawTextFromAI.length);
 
     let resumeData;
     try {
       resumeData = JSON.parse(rawTextFromAI);
     } catch (e) {
-      console.error("Failed to parse JSON from AI response:", rawTextFromAI);
+      console.error("Failed to parse JSON from AI response:", rawTextFromAI.substring(0, 500));
       throw new Error("The AI returned an unrecoverable data format.");
     }
 
